@@ -1,5 +1,8 @@
 utilizando psql server 16 en el cmd de windows, necesito
 
+psql -U postgres
+postgres
+
 CREATE DATABASE pruebasql_gabriel_munoz_666;
 
 \c pruebasql_gabriel_munoz_666
@@ -17,12 +20,6 @@ CREATE TABLE Peliculas (
 CREATE TABLE Tags (
     id SERIAL PRIMARY KEY,
     tag VARCHAR(32)
-);
-
-CREATE TABLE Peliculas_Tags (
-    pelicula_id INTEGER REFERENCES Peliculas(id),
-    tag_id INTEGER REFERENCES Tags(id),
-    PRIMARY KEY (pelicula_id, tag_id)
 );
 
 -----------------------------------------------------------------------------
@@ -43,9 +40,26 @@ INSERT INTO Tags (tag) VALUES
 ('Ciencia Ficción'),
 ('Aventura');
 
+INSERT INTO Peliculas_Tags (pelicula_id, tag_id) VALUES
+(1, 1), (1, 2), (1, 3),
+(2, 4), (2, 5);          
+
 -----------------------------------------------------------------------------
 3. Cuenta la cantidad de tags que tiene cada película. Si una película 
 no tiene tags debe mostrar 0.
+
+SELECT p.id, p.nombre, COUNT(pt.tag_id) AS cantidad_tags
+FROM Peliculas p
+LEFT JOIN Peliculas_Tags pt ON p.id = pt.pelicula_id
+GROUP BY p.id, p.nombre
+ORDER BY p.id;
+
+o
+
+SELECT p.nombre, COUNT(pt.tag_id) AS cantidad_tags
+FROM Peliculas p
+LEFT JOIN Peliculas_Tags pt ON p.id = pt.pelicula_id
+GROUP BY p.id;
 
 -----------------------------------------------------------------------------
 4. Crea las tablas correspondientes respetando los nombres,
@@ -67,7 +81,7 @@ CREATE TABLE Respuestas (
 CREATE TABLE Usuarios (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(255),
-    edad INTEGER CHECK (edad >= 18),
+    edad INTEGER CHECK (edad >= 18), --Restricción de edad
     email VARCHAR(255) UNIQUE
 );
 
@@ -112,6 +126,17 @@ Prueba la implementación borrando el primer usuario.
 9. Crea una restricción que impida insertar usuarios menores de 18 años en la
 base de datos.
 
+ALTER TABLE Respuestas
+DROP CONSTRAINT respuestas_usuario_id_fkey,
+ADD CONSTRAINT respuestas_usuario_id_fkey
+FOREIGN KEY (usuario_id) REFERENCES Usuarios(id) ON DELETE CASCADE;
+
+--Probar eliminando el primer usuario
+DELETE FROM Usuarios WHERE id = 1;
+
 -----------------------------------------------------------------------------
 10. Altera la tabla existente de usuarios agregando el campo email.
 Debe tener la restricción de ser único.
+
+ALTER TABLE Usuarios
+ADD COLUMN email VARCHAR(255) UNIQUE;
