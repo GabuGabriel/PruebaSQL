@@ -1,5 +1,3 @@
-utilizando psql server 16 en el cmd de windows, necesito
-
 psql -U postgres
 postgres
 
@@ -11,6 +9,11 @@ CREATE DATABASE pruebasql_gabriel_munoz_666;
 1. Revisa el tipo de relación y crea el modelo correspondiente.
 Respeta las claves primarias, foráneas y tipos de datos.
 
+Tipo de relación:
+Esta es una relación muchos a muchos 
+Una película puede tener múltiples tags
+Un tag puede estar asociado a múltiples películas
+
 CREATE TABLE Peliculas (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(255),
@@ -20,6 +23,14 @@ CREATE TABLE Peliculas (
 CREATE TABLE Tags (
     id SERIAL PRIMARY KEY,
     tag VARCHAR(32)
+);
+
+CREATE TABLE Peliculas_Tags (
+    pelicula_id INT,
+    tag_id INT,
+    PRIMARY KEY (pelicula_id, tag_id),
+    FOREIGN KEY (pelicula_id) REFERENCES Peliculas(id),
+    FOREIGN KEY (tag_id) REFERENCES Tags(id)
 );
 
 -----------------------------------------------------------------------------
@@ -81,7 +92,7 @@ CREATE TABLE Respuestas (
 CREATE TABLE Usuarios (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(255),
-    edad INTEGER CHECK (edad >= 18), --Restricción de edad
+    edad INTEGER CHECK (edad >= 18), --restricción de edad
     email VARCHAR(255) UNIQUE
 );
 
@@ -104,35 +115,81 @@ INSERT INTO Preguntas (pregunta, respuesta_correcta) VALUES
 
 a. La primera pregunta debe estar respondida correctamente dos veces, por dos
 usuarios diferentes.
+INSERT INTO Respuestas (respuestas, usuario_id, pregunta_id)
+VALUES ('París', 1, 1), ('París', 2, 1);
+
 b. La segunda pregunta debe estar contestada correctamente solo por un
 usuario.
+INSERT INTO Respuestas (respuestas, usuario_id, pregunta_id)
+VALUES ('1939', 3, 2);
+
 c. Las otras tres preguntas deben tener respuestas incorrectas.
 Contestada correctamente significa que la respuesta indicada en la tabla
 respuestas es exactamente igual al texto indicado en la tabla de preguntas.
+INSERT INTO Respuestas (respuestas, usuario_id, pregunta_id)
+VALUES 
+('Marte', 4, 3),
+('Vincent van Gogh', 5, 4),
+('Oxígeno', 1, 5);
 
 -----------------------------------------------------------------------------
 6. Cuenta la cantidad de respuestas correctas totales por usuario
 (independiente de la pregunta).
 
+SELECT u.nombre, COUNT(r.id) AS respuestas_correctas
+FROM Usuarios u
+JOIN Respuestas r ON u.id = r.usuario_id
+JOIN Preguntas p ON r.pregunta_id = p.id
+WHERE r.respuestas = p.respuesta_correcta
+GROUP BY u.id, u.nombre;
+
+o
+
+SELECT u.id, u.nombre, COUNT(r.id) as respuestas_correctas
+FROM Usuarios u
+LEFT JOIN Respuestas r ON u.id = r.usuario_id
+LEFT JOIN Preguntas p ON r.pregunta_id = p.id
+WHERE r.respuestas = p.respuesta_correcta
+GROUP BY u.id, u.nombre
+ORDER BY u.id;
+
 -----------------------------------------------------------------------------
 7. Por cada pregunta, en la tabla preguntas, cuenta cuántos usuarios respondieron
 correctamente.
 
+SELECT p.pregunta, COUNT(r.id) AS usuarios_correctos
+FROM Preguntas p
+JOIN Respuestas r ON p.id = r.pregunta_id
+WHERE r.respuestas = p.respuesta_correcta
+GROUP BY p.id, p.pregunta;
+
+o
+
+SELECT p.id, p.pregunta, COUNT(r.id) as usuarios_correctos
+FROM Preguntas p
+LEFT JOIN Respuestas r ON p.id = r.pregunta_id
+WHERE r.respuestas = p.respuesta_correcta
+GROUP BY p.id, p.pregunta
+ORDER BY p.id;
+
 -----------------------------------------------------------------------------
 8. Implementa un borrado en cascada de las respuestas al borrar un usuario.
 Prueba la implementación borrando el primer usuario.
-
------------------------------------------------------------------------------
-9. Crea una restricción que impida insertar usuarios menores de 18 años en la
-base de datos.
 
 ALTER TABLE Respuestas
 DROP CONSTRAINT respuestas_usuario_id_fkey,
 ADD CONSTRAINT respuestas_usuario_id_fkey
 FOREIGN KEY (usuario_id) REFERENCES Usuarios(id) ON DELETE CASCADE;
 
---Probar eliminando el primer usuario
+--probar eliminando el primer usuario
 DELETE FROM Usuarios WHERE id = 1;
+
+--verificar
+SELECT * FROM Respuestas WHERE usuario_id = 1;
+
+-----------------------------------------------------------------------------
+9. Crea una restricción que impida insertar usuarios menores de 18 años en la
+base de datos.
 
 -----------------------------------------------------------------------------
 10. Altera la tabla existente de usuarios agregando el campo email.
@@ -140,3 +197,6 @@ Debe tener la restricción de ser único.
 
 ALTER TABLE Usuarios
 ADD COLUMN email VARCHAR(255) UNIQUE;
+
+--hay respuestas ya resueltas
+--otras necesitan revision  
